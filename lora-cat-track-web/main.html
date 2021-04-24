@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>LoRa Cat Tracker</title>
+		<style>
+			html, body {
+				height: 100%;
+				width: 100%;
+				margin: 0;
+				font: 1.5em Arial
+			}
+			table, td {
+				padding:0
+			}
+			#head {
+				height: 2.7em
+			}
+			#info {
+				vertical-align: top
+				color: red
+			}
+			.key {
+				text-align: right;
+				padding-right:0.4em
+			}
+			#map {
+				position: absolute;
+				top: 2.7em;
+				bottom: 0;
+				width: 100%
+			}
+		</style>
+		<script>
+			let map;
+			let m;
+
+			var $ = function( id ) { return document.getElementById( id ); };
+
+			function re() {
+				setTimeout(function(){ 
+					get();
+				}, 1000);
+			}
+			
+			function initMap() {
+				map = new google.maps.Map($("map"), {
+					zoom: 20,
+					streetViewControl: false,
+					fullscreenControl: false,
+					mapTypeControl: false,
+					mapTypeId: 'satellite'
+				});
+				re();
+			}
+
+			function get() {
+				fetch("d", {cache: "no-store"})
+				.then((response) => {
+					if (response.ok) {
+						return response.text();
+					}
+					else{
+						throw new Error(response.statusText);
+					}
+				})
+				.then((text) => {
+					if(text.length>10){
+						const res = text.split("|");
+						$("bat").innerHTML = res[0] + "%";
+						$("time").innerHTML = res[1] + "s";
+						$("stre").innerHTML = res[2];
+						$("rssi").innerHTML = res[3];
+						const lat = parseFloat(res[4]);
+						const lng = parseFloat(res[5]);
+						if(lat != 0 && lng != 0 && lat && lng){
+							const point = {lat:parseFloat(res[4]), lng: parseFloat(res[5])};
+							if(m && map.getBounds()){
+								m.setPosition(point);
+								if(!map.getBounds().contains(m.getPosition())){
+									map.panTo(point);
+								}
+							}
+							else{
+								m = new google.maps.Marker({
+									position: point,
+									map: map,
+								});
+								map.panTo(point);
+							}
+						}
+						$("info").innerHTML = "";
+						$("data").style.display = "block";
+						$("info").style.display = "none";
+					}
+					re();
+				})
+				.catch((error) => {
+					$("info").innerHTML = error;
+					$("data").style.display = "none";
+					$("info").style.display = "block";
+					re();
+				});				
+			}
+		</script>
+	</head>
+	<body>
+		<div id="head">
+			<div id="info">
+			</div>
+			<table id="data">
+				<tr>
+					<td class="key">Battery:</td><td id="bat">---</td><td class="key" style="padding-left:4em">Signal:</td><td id="stre">---</td>
+				</tr>
+				<tr>
+					<td class="key">Last lock:</td><td id="time">---</td><td class="key">RSSI:</td><td id="rssi">---</td>
+				</tr>
+			</table>
+		</div>
+		<div id="map"></div>
+		<script src="https://maps.googleapis.com/maps/api/js?key=<YourGoogleMapKey>=initMap&libraries=&v=weekly" async>
+		</script>
+	</body>
+</html>
